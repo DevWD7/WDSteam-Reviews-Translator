@@ -83,6 +83,13 @@ Works on:
 
 ---
 
+
+
+## 🎥 video
+
+https://github.com/user-attachments/assets/c66829b2-a883-4050-948c-69a2c1c64d41
+
+
 # 📥 Installation
 
 ## Chrome extension
