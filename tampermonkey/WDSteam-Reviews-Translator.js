@@ -2,7 +2,7 @@
 // @name         WDSteam Reviews Translator
 // @name:ar      WDSteam مترجم مراجعات
 // @namespace    https://github.com/DevWD7
-// @version      1.0
+// @version      1.0.1
 // @description  Translate Steam reviews and comments instantly, in any language, right inside the page.
 // @description:ar ترجمة مراجعات وتعليقات ستيم فوريًا لأي لغة داخل الصفحة.
 // @author       Wdox
@@ -137,6 +137,9 @@
       rights: '© WDOX 2026 — جميع الحقوق محفوظة',
       gearTitle: 'إعدادات WDSteam Translate',
       closeTitle: 'إغلاق',
+      noTransTitle: 'الترجمة غير متوفرة',
+      noTransDesc: 'هذه الصفحة لا تحتوي على مراجعات أو تعليقات قابلة للترجمة',
+      openSettings: 'فتح الإعدادات',
     },
     en: {
       brandSub: 'Translation Settings',
@@ -154,6 +157,9 @@
       rights: '© WDOX 2026 — All rights reserved',
       gearTitle: 'WDSteam Translate Settings',
       closeTitle: 'Close',
+      noTransTitle: 'Translation Not Available',
+      noTransDesc: 'This page has no reviews or comments available to translate',
+      openSettings: 'Open Settings',
     },
   };
 
@@ -749,7 +755,27 @@
     'color:#66c0f4;text-decoration:none;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);' +
     'transition:background .15s,color .15s,transform .15s;}' +
     '.wdt-social a:hover{background:linear-gradient(155deg,rgba(102,192,244,.3),rgba(42,71,94,.75));color:#fff;transform:translateY(-2px);}' +
-    '.wdt-rights{text-align:center;font-size:10.5px;color:#5c6d7e;padding:4px 0 2px;}';
+    '.wdt-rights{text-align:center;font-size:10.5px;color:#5c6d7e;padding:4px 0 2px;}' +
+    '.wdt-nohead{display:flex;justify-content:flex-end;margin-bottom:-6px;}' +
+    '.wdt-noscreen{padding:14px 14px 22px;text-align:center;}' +
+    '.wdt-nologo-wrap{position:relative;display:inline-block;margin:0 auto 18px;}' +
+    '.wdt-nologo{width:130px;height:130px;border-radius:50%;object-fit:cover;display:block;' +
+    'box-shadow:0 0 36px rgba(102,192,244,.5),0 0 0 2px rgba(102,192,244,.55);}' +
+    '.wdt-nobadge{position:absolute;bottom:-8px;right:-8px;width:44px;height:44px;border-radius:50%;' +
+    'display:flex;align-items:center;justify-content:center;color:#fff;' +
+    'background:linear-gradient(135deg,#ff5f6d,#ff9966);' +
+    'box-shadow:0 6px 18px rgba(255,95,109,.5),0 0 0 3px #171a21;}' +
+    '.wdt-noname{font-size:15px;font-weight:800;color:#e6edf3;margin-bottom:14px;line-height:1.3;' +
+    'padding:0 8px;word-break:break-word;}' +
+    '.wdt-notitle{font-size:20px;font-weight:800;margin-bottom:8px;letter-spacing:.3px;' +
+    'background:linear-gradient(90deg,#ff7676,#ffb347);-webkit-background-clip:text;background-clip:text;' +
+    '-webkit-text-fill-color:transparent;color:transparent;}' +
+    '.wdt-nodesc{font-size:12.5px;color:#8f98a0;line-height:1.65;margin-bottom:20px;padding:0 10px;}' +
+    '.wdt-nosettings{display:inline-flex;align-items:center;gap:9px;padding:11px 20px;cursor:pointer;' +
+    'border:1px solid transparent;border-radius:14px;color:#c7d5e0;font-family:inherit;font-size:13px;font-weight:700;' +
+    'background:linear-gradient(#1b2838,#1b2838) padding-box,linear-gradient(95deg,#66c0f4,#417a9b,#1999ff) border-box;' +
+    'box-shadow:0 0 18px rgba(102,192,244,.3);transition:transform .15s,box-shadow .15s;}' +
+    '.wdt-nosettings:hover{transform:translateY(-1px);box-shadow:0 0 26px rgba(102,192,244,.55);}';
 
   let stylesInjected = false;
   function injectStyles() {
@@ -1017,6 +1043,25 @@
   let panelEl = null;
   let gearMode = 'fixed';
 
+  function isGamePage() {
+    return /store\.steampowered\.com\/(?:[a-z-]+\/)?app\//i.test(location.href) ||
+           /steamcommunity\.com\/app\//i.test(location.href);
+  }
+
+  function getGameName() {
+    const nameSelectors = [
+      '#appHubAppName',
+      '.apphub_AppName',
+      '.apphub_AppName_content',
+      '.apphub_HomeHeaderContent .apphub_AppName',
+    ];
+    for (let i = 0; i < nameSelectors.length; i++) {
+      const el = document.querySelector(nameSelectors[i]);
+      if (el && el.textContent && el.textContent.trim()) return el.textContent.trim();
+    }
+    return '';
+  }
+
   function socialHTML() {
     return SOCIAL_LINKS.map(
       (i) =>
@@ -1162,6 +1207,34 @@
       });
     }
 
+    function renderNoTranslation() {
+      const dir = settings.uiLang === 'ar' ? 'rtl' : 'ltr';
+      const name = getGameName();
+      panel.style.direction = dir;
+      panel.innerHTML =
+        '<div class="wdt-nohead">' +
+        '<button type="button" class="wdt-x" id="wdt_close_no" title="' + t('closeTitle') + '">' + ICONS.close + '</button>' +
+        '</div>' +
+        '<div class="wdt-noscreen">' +
+        '<div class="wdt-nologo-wrap">' +
+        '<img class="wdt-nologo" src="' + LOGO + '" alt="">' +
+        '<span class="wdt-nobadge">' + ICONS.close + '</span>' +
+        '</div>' +
+        (name ? '<div class="wdt-noname">' + name + '</div>' : '') +
+        '<div class="wdt-notitle">' + t('noTransTitle') + '</div>' +
+        '<div class="wdt-nodesc">' + t('noTransDesc') + '</div>' +
+        '<button type="button" class="wdt-nosettings" id="wdt_open_settings_no">' +
+        ICONS.gear + '<span>' + t('openSettings') + '</span></button>' +
+        '</div>';
+
+      panel.querySelector('#wdt_close_no').addEventListener('click', () => {
+        panel.style.display = 'none';
+      });
+      panel.querySelector('#wdt_open_settings_no').addEventListener('click', () => {
+        render();
+      });
+    }
+
     render();
 
     document.body.appendChild(gear);
@@ -1173,6 +1246,11 @@
       if (panel.style.display === 'block') {
         panel.style.display = 'none';
         return;
+      }
+      if (liveWidgets.length === 0 && isGamePage()) {
+        renderNoTranslation();
+      } else {
+        render();
       }
       const rect = gear.getBoundingClientRect();
       const width = 420;
@@ -1188,15 +1266,19 @@
   }
 
   function findFilterHintRow() {
-    const byClass = document.querySelector('#reviews_active_filters, .user_reviews_active_filters');
+    const byClass = document.querySelector(
+      '#reviews_active_filters, .user_reviews_active_filters, #NoReviewsForFilter, #NoReviewsMessage, .no_reviews'
+    );
     if (byClass) return byClass;
 
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     let node;
     while ((node = walker.nextNode())) {
-      if (node.nodeValue && /reviews that match the filters above/i.test(node.nodeValue)) {
-        return node.parentElement;
-      }
+      if (!node.nodeValue) continue;
+      const value = node.nodeValue;
+      if (/reviews that match the filters above/i.test(value)) return node.parentElement;
+      if (/there are no reviews for this product/i.test(value)) return node.parentElement;
+      if (/no reviews match the filters/i.test(value)) return node.parentElement;
     }
     return null;
   }
