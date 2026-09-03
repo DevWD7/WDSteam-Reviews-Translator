@@ -11,7 +11,7 @@
 
 # WDSteam Reviews Translator
 
-![Version](https://img.shields.io/badge/version-1.0.1-blue)
+![Version](https://img.shields.io/badge/version-1.1.1-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-Chrome%20%7C%20Tampermonkey%20%7C%20Steam-orange)
 
