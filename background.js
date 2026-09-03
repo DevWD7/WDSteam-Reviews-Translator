@@ -1,41 +1,53 @@
-const TRANSLATE_ENDPOINT = 'https://translate.googleapis.com/translate_a/single';
+const ALLOWED_HOSTS = [
+  'translate.googleapis.com',
+  'clients5.google.com',
+  'translate.google.com',
+  'api.mymemory.translated.net',
+];
+
+function isAllowed(rawUrl) {
+  let parsed;
+  try {
+    parsed = new URL(rawUrl);
+  } catch (e) {
+    return false;
+  }
+  if (parsed.protocol !== 'https:') return false;
+  return ALLOWED_HOSTS.indexOf(parsed.hostname) !== -1;
+}
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (!message || message.type !== 'WDT_TRANSLATE') return false;
+  if (!message || message.type !== 'WDT_FETCH') return false;
 
-  const text = typeof message.text === 'string' ? message.text : '';
-  const targetLang = message.targetLang || 'en';
-
-  if (!text.trim()) {
-    sendResponse({ ok: false, error: 'empty' });
+  if (!isAllowed(message.url)) {
+    sendResponse({ status: 0, text: '', failure: 'blocked' });
     return true;
   }
 
-  const url =
-    TRANSLATE_ENDPOINT +
-    '?client=gtx&sl=auto&dt=t&ie=UTF-8&oe=UTF-8&tl=' +
-    encodeURIComponent(targetLang);
+  const timeout = typeof message.timeout === 'number' ? message.timeout : 20000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
 
-  fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-    body: 'q=' + encodeURIComponent(text),
-  })
-    .then((res) => {
-      if (!res.ok) throw new Error('bad status ' + res.status);
-      return res.json();
-    })
-    .then((data) => {
-      const rows = Array.isArray(data) && Array.isArray(data[0]) ? data[0] : null;
-      if (!rows) throw new Error('bad payload');
-      const translated = rows
-        .map((chunk) => (Array.isArray(chunk) && typeof chunk[0] === 'string' ? chunk[0] : ''))
-        .join('');
-      if (!translated.trim()) throw new Error('empty result');
-      sendResponse({ ok: true, text: translated });
+  const init = {
+    method: message.method || 'GET',
+    headers: message.headers || {},
+    credentials: 'omit',
+    signal: controller.signal,
+  };
+  if (init.method !== 'GET' && init.method !== 'HEAD' && message.data) {
+    init.body = message.data;
+  }
+
+  fetch(message.url, init)
+    .then((res) => res.text().then((text) => ({ status: res.status, text: text })))
+    .then((payload) => {
+      clearTimeout(timer);
+      sendResponse(payload);
     })
     .catch((err) => {
-      sendResponse({ ok: false, error: String(err) });
+      clearTimeout(timer);
+      const aborted = err && err.name === 'AbortError';
+      sendResponse({ status: 0, text: '', failure: aborted ? 'timeout' : 'network' });
     });
 
   return true;
